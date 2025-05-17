@@ -5,16 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import '@/app/globals.css'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Admin Dashboard',
-  description: 'Manage your wedding content and client information',
-  robots: {
-    index: false,
-    follow: false,
-  },
-}
 
 export default function AdminLayout({
   children,
@@ -55,7 +45,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-100">
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-white shadow-lg flex flex-col min-h-screen">
         <div className="flex items-center justify-center h-16 border-b">
