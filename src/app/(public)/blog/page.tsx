@@ -1,16 +1,13 @@
-import type { Metadata } from 'next';
+"use client";
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
-
-export const metadata: Metadata = {
-  title: 'Wedding Blog',
-  description: 'Explore our wedding planning tips, inspiration, and real wedding stories from Gulf Beach Weddings.',
-  openGraph: {
-    title: 'Wedding Blog - Gulf Beach Weddings',
-    description: 'Explore our wedding planning tips, inspiration, and real wedding stories from Gulf Beach Weddings.',
-  },
-};
+import React, { useState } from 'react';
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { metadata } from './metadata';
 
 interface BlogPost {
   id: string;
@@ -36,8 +33,40 @@ async function getBlogPosts(): Promise<BlogPost[]> {
   return posts as BlogPost[];
 }
 
+const DraggableBlogPost: React.FC<{ id: string; title: string }> = ({ id, title }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-4 border rounded mb-2">
+      {title}
+    </div>
+  );
+};
+
 export default async function BlogPage() {
-  const posts = await getBlogPosts();
+  const [blogPosts, setBlogPosts] = useState([
+    { id: '1', title: 'Post 1' },
+    { id: '2', title: 'Post 2' },
+    { id: '3', title: 'Post 3' },
+  ]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setBlogPosts((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -78,68 +107,13 @@ export default async function BlogPage() {
 
           {/* Blog Posts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => {
-              let imageUrl = '';
-              try {
-                const content = JSON.parse(post.content);
-                const firstImage = content.blocks.find(
-                  (block: { type: string }) => block.type === 'image'
-                );
-                if (firstImage) {
-                  imageUrl = firstImage.data.file.url;
-                }
-              } catch (error) {
-                console.error('Error parsing post content:', error);
-              }
-
-              return (
-                <article
-                  key={post.id}
-                  className="bg-white rounded-lg shadow-lg overflow-hidden"
-                >
-                  {imageUrl && (
-                    <div className="relative h-48">
-                      <Image
-                        src={imageUrl}
-                        alt={post.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="p-6">
-                    <div className="flex items-center text-sm text-gray-500 mb-2">
-                      <time dateTime={post.created_at}>
-                        {new Date(post.created_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </time>
-                      <span className="mx-2">•</span>
-                      <span>{post.category}</span>
-                    </div>
-                    <h2 className="text-xl font-bold mb-2">
-                      <Link
-                        href={`/blog/${post.slug}`}
-                        className="hover:text-indigo-600"
-                      >
-                        {post.title}
-                      </Link>
-                    </h2>
-                    <p className="text-gray-600 mb-4 line-clamp-3">
-                      {post.excerpt}
-                    </p>
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      className="text-indigo-600 hover:text-indigo-700 font-medium"
-                    >
-                      Read More →
-                    </Link>
-                  </div>
-                </article>
-              );
-            })}
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={blogPosts.map((post) => post.id)} strategy={verticalListSortingStrategy}>
+                {blogPosts.map((post) => (
+                  <DraggableBlogPost key={post.id} id={post.id} title={post.title} />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
 
           {/* Newsletter Section */}
